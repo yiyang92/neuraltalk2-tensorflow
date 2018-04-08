@@ -50,7 +50,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--output_h5', default='train_val.h5',
                       help='output h5 file')
-    parser.add_argument('--coco_dir', help='MSCOCO directory')
+    parser.add_argument('--coco_dir', required=True, help='MSCOCO directory')
     args = parser.parse_args()
     params = vars(args)
     main(params)

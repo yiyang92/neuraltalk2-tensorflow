@@ -62,8 +62,6 @@ class Decoder():
             _, initial_state0 = cell_0(self.images_fv, zero_state0)
             if self.c_i is not None and self.params.use_c_v:
                 _, initial_state0 = cell_0(self.c_i, initial_state0)
-            if not gen_mode:
-                print("Not using q(z|x)")
             initial_state = rnn_placeholders(initial_state0)
             # captions LSTM
             outputs, final_state = tf.nn.dynamic_rnn(cell_0,

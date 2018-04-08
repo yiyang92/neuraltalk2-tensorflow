@@ -47,11 +47,8 @@ def main(params):
     else:
         # use prepared image features [batch_size, 4096] (fc2)
         image_batch = tf.placeholder(tf.float32, [None, 4096])
-    if params.use_c_v or (
-        params.prior == 'GMM' or params.prior == 'AG'):
+    if params.use_c_v:
         cl_vectors = tf.placeholder(tf.float32, [None, 90])
-    else:
-        cl_vectors = ann_lengths # dummy tensor
     # features, params.fine_tune stands for not using presaved imagenet weights
     # here, used this dummy placeholder during fine_tune
     # thats for saving image_net weights for futher usage
@@ -59,18 +56,14 @@ def main(params):
         tf.ones([1, 224, 224, 3]), shape=[None, 224, 224, 3], name='dummy_ps')
     if params.fine_tune:
         image_f_inputs2 = image_batch
-    if params.mode == 'training' and params.fine_tune:
-        cnn_dropout = params.cnn_dropout
-        weights_regularizer = tf.contrib.layers.l2_regularizer(
-            params.weight_decay)
-    else:
-        cnn_dropout = 1.0
-        weights_regularizer = None
+    cnn_dropout_keep = tf.placeholder_with_default(1.0, ())
+    weights_regularizer = tf.contrib.layers.l2_regularizer(
+        params.weight_decay)
     with tf.variable_scope("cnn", regularizer=weights_regularizer):
         image_embeddings = vgg16(image_f_inputs2,
                                  trainable_fe=params.fine_tune_fe,
                                  trainable_top=params.fine_tune_top,
-                                 dropout_keep=cnn_dropout)
+                                 dropout_keep=cnn_dropout_keep)
     if params.fine_tune:
         features = image_embeddings.fc2
     else:
@@ -114,7 +107,7 @@ def main(params):
                                                                       params)
     optimize_cnn = tf.constant(0.0)
     if params.fine_tune and params.mode == 'training':
-        optimize_cnn, _ = optimizers.cnn_optimizer(lower_bound, params)
+        optimize_cnn, _ = optimizers.cnn_optimizer(rec_loss, params)
     # cnn parameters update
     # model restore
     vars_to_save = tf.trainable_variables()
@@ -160,22 +153,22 @@ def main(params):
                         if params.num_captions > 1:
                             captions_batch, cl_batch, c_v = preprocess_captions(
                                 captions_batch, cl_batch, c_v)
-                        feed = {image_f_inputs: f_images_batch,
+                        feed = {image_batch: f_images_batch,
                                 cap_enc: captions_batch[1],
                                 cap_dec: captions_batch[0],
-                                cap_len: cl_batch
+                                cap_len: cl_batch,
+                                cnn_dropout_keep: params.cnn_dropout
                                 }
                         if params.use_c_v:
                             feed.update({c_i: c_v[:, 1:]})
                         gs = tf.train.global_step(sess, global_step)
-                        feed.update({anneal: gs})
                         # print(sess.run(debug_print, feed))
                         total_loss_ ,_,_ = sess.run([rec_loss, optimize,
                                                 optimize_cnn], feed)
                         gs_epoch += 1
                         if gs % 500 == 0:
-                            print("Total training loss: {} iteraton: {}".format(
-                                total_loss_, gs))
+                            print("Iteraton: {} Total training loss: {} ".format(
+                                gs, total_loss_))
                         if stop_condition():
                             break
                     if stop_condition():
@@ -190,7 +183,7 @@ def main(params):
                         if params.num_captions > 1:
                             captions_batch, cl_batch, c_v= preprocess_captions(
                                 captions_batch, cl_batch,c_v)
-                        feed = {image_f_inputs: f_images_batch,
+                        feed = {image_batch: f_images_batch,
                                 cap_enc: captions_batch[1],
                                 cap_dec: captions_batch[0],
                                 cap_len: cl_batch}
@@ -198,7 +191,7 @@ def main(params):
                             feed.update({c_i: c_v[:, 1:]})
                         rl = sess.run([rec_loss], feed_dict=feed)
                         val_rec.append(rl)
-                    print("Validation reconstruction loss: {}".format(
+                    print("Validation loss: {}".format(
                         np.mean(val_rec)))
                     print("-----------------------------------------------")
                 validate()
@@ -214,7 +207,7 @@ def main(params):
         # run inference
         if params.mode == "inference":
             inference.inference(params, decoder, val_gen,
-                                test_gen, image_f_inputs, saver, sess)
+                                test_gen, image_batch, saver, sess)
 
 
 if __name__ == '__main__':
@@ -224,9 +217,7 @@ if __name__ == '__main__':
     # save parameters for futher usage
     if params.save_params:
         import pickle
-        param_fn = "./pickles/params_{}_{}_{}_{}.pickle".format(params.prior,
-                                        params.no_encoder,
-                                        params.checkpoint,
+        param_fn = "./pickles/params_{}_cv={}.pickle".format(params.checkpoint,
                                         params.use_c_v)
         print("Saving params to: ", param_fn)
         with open(param_fn, 'wb') as wf:

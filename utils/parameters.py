@@ -1,7 +1,7 @@
 class Parameters():
     # general parameters
     num_epochs = 20
-    learning_rate = 0.0005
+    learning_rate = 4e-4
     num_captions = 5  # every iteration use how many captions for one image (1-5)
     batch_size = 32  # proved to be quite good
     cnn_feature_size = 4096  # vgg16 fc2 output shape
@@ -35,7 +35,7 @@ class Parameters():
     fine_tune = False
     fine_tune_top = True  # fine-tune CNN top layer
     fine_tune_fe = True  # fine-tune bottom layers
-    cnn_lr = 0.00001
+    cnn_lr = 1e-5
     cnn_optimizer = 'Adam'  # SGD, Adam, Momentum'
     cnn_dropout = 0.5  # cnn dropout keep_rate
     weight_decay = 0.00004  # L2-regularization for CNN parameters ||wtw||
@@ -48,7 +48,6 @@ class Parameters():
     gen_val_captions = 4000  # set -1 to generate captions on a original dataset
     keep_words = 3  # minimal time of word occurence
     cap_max_length = 100  # maximum length of caption, more will be clipped
-    prior = 'Normal'  # Normal, GMM, AG. Priors for CVAE model
     max_checkpoints_to_keep = 5
     mode = 'training'  # training or inference
     num_ex_per_epoch = 150000  # 586363 for im2txt, number examples per epoch

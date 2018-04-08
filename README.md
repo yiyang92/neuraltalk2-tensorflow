@@ -39,7 +39,7 @@ python main.py --gpu 'your gpu' --mode inference --fine_tune
 ```
 It will produce json file ready to use with [mscoco evaluation tool](https://github.com/tylin/coco-caption)
 
-2) Using separate gen_caption.py script. It doesnt support fine-tuned model for now (will be modified soon). Can be used to generate captions for any images.
+2) Using separate gen_caption.py script. Can be used to generate captions for any images.
 
 For list of required parameters:
 ```shell=
